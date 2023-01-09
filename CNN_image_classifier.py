@@ -2,11 +2,12 @@
 import pandas as pd
 import torch
 from torch import nn
-from torch import sigmoid
+from torch import tanh, sigmoid
 
 # %%
 #importing data from the set.
 mnist_data = pd.read_csv('mnist_train.csv', dtype="float").dropna()
+print(mnist_data.shape)
 
 # %%
 Y = torch.tensor(mnist_data['label']).float()
@@ -31,7 +32,6 @@ class CNN(nn.Module):
 
 # %%
 model = CNN(784, 784, 10)
-model.state_dict()
 
 # %%
 # function for training the CNN 
@@ -44,7 +44,7 @@ def train(Y, X, model, optimizer, criterion, epochs):
         total = 0
         for y, x in zip(Y, X):
             yhat = model(x)
-            loss = criterion(yhat, y)
+            loss = criterion(yhat, y.long())
             loss.backward()
             optimizer.step()
             optimizer.zero_grad()
@@ -53,9 +53,9 @@ def train(Y, X, model, optimizer, criterion, epochs):
     return cost
 
 # %%
-criterion = nn.MSELoss()
-optimizer = torch.optim.SGD(model.parameters(),lr=0.01)
-epochs =1
+criterion = nn.CrossEntropyLoss()
+optimizer = torch.optim.SGD(model.parameters(),lr=0.003)
+epochs = 1
 cost = train(Y, X, model, optimizer, criterion, epochs)
 
 # %%
@@ -63,15 +63,33 @@ cost = train(Y, X, model, optimizer, criterion, epochs)
 PATH = './cifar_net.pth'
 dict = model.state_dict()
 torch.save(dict, PATH)
-model.state_dict()
-
-#net.load_state_dict(torch.load(PATH)) 
+# model.load_state_dict(torch.load(PATH)) 
 # can be used to load that model again
 
 # %%
-mnist_data_test = pd.read_csv('mnist_train.csv', dtype="float").dropna()
+mnist_data_test = pd.read_csv('mnist_test.csv', dtype="float").dropna()
 Y_test = torch.tensor(mnist_data_test['label']).float()
 X_list = mnist_data_test.drop(columns=['label'])
 X_test = torch.tensor(X_list.values).float()
+
+# %%
+def test(X):
+    y = model(X)
+    y_predicted = torch.argmax(y)
+    return y_predicted
+
+# %%
+right = 0
+wrong = 0
+for i in range(10000):
+    predicted = test(X_test[i])
+    y = Y_test[i]
+    if predicted == y:
+        right = right+1
+    else:
+        wrong = wrong+1 
+print("The loss is:", wrong/(right+wrong))
+print("Number of right predictions:", right)
+print("Number of wrong predictions:", wrong)
 
 
